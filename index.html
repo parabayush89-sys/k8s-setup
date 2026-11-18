@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A beginner-friendly Kubernetes cluster setup notebook for CentOS 9.">
+<title>Kubernetes on CentOS 9 | Lab Notebook</title>
+<style>
+:root{
+  --paper:#fffdf6;--ink:#263238;--muted:#687780;--line:#e8dfca;
+  --blue:#174f78;--blue2:#eaf4fb;--yellow:#fff1a8;--red:#fff0eb;
+  --green:#e9f6ed;--code:#17232e;--codeText:#e8f1f7;--accent:#e7a928;
+  --shadow:0 8px 28px rgba(47,55,60,.09);
+}
+*{box-sizing:border-box;scroll-behavior:smooth}
+body{margin:0;background:#e9edf0;color:var(--ink);font:16px/1.65 "Segoe UI",Arial,sans-serif}
+.notebook{max-width:1240px;margin:28px auto;background:var(--paper);min-height:100vh;box-shadow:var(--shadow);display:grid;grid-template-columns:270px minmax(0,1fr);border-radius:12px;overflow:hidden}
+.sidebar{background:#f5f0e4;border-right:1px solid var(--line);padding:28px 20px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{font-weight:800;color:var(--blue);font-size:1.15rem;letter-spacing:.04em}
+.brand small{display:block;color:var(--muted);font-size:.72rem;font-weight:600;letter-spacing:.12em;margin-top:3px}
+.author{font-size:.82rem;color:var(--muted);margin:18px 0 24px;padding:12px;background:#fff;border-left:3px solid var(--accent);border-radius:5px}
+.author a{color:var(--blue);overflow-wrap:anywhere}
+.nav-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.14em;color:#8b806b;font-weight:800;margin:18px 0 8px}
+nav a{display:block;text-decoration:none;color:#42525b;padding:8px 10px;border-radius:6px;font-size:.9rem;margin:2px 0}
+nav a:hover,nav a.active{background:#fff;color:var(--blue);font-weight:700}
+.main{padding:42px clamp(22px,5vw,68px) 70px;min-width:0}
+.cover{padding:38px 34px;background:linear-gradient(135deg,#eaf4fb,#fff8df);border:1px solid #d9e6ec;border-radius:12px;position:relative;overflow:hidden}
+.cover:after{content:"K8S";position:absolute;right:18px;bottom:-28px;font-size:8rem;font-weight:900;color:rgba(23,79,120,.07)}
+.eyebrow{font-size:.75rem;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);font-weight:800}
+h1{font-size:clamp(2rem,4vw,3.2rem);line-height:1.12;color:#173f5c;margin:12px 0}
+.subtitle{font-size:1.08rem;color:#52646e;max-width:650px}
+.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.pill{background:#fff;border:1px solid #d8e3e7;border-radius:30px;padding:6px 12px;font-size:.78rem;color:#49616e}
+h2{font-size:1.65rem;color:var(--blue);margin:54px 0 14px;padding-bottom:9px;border-bottom:2px solid var(--line)}
+h3{font-size:1.12rem;color:#304c5c;margin:28px 0 8px}
+p{margin:9px 0 14px}
+.lead{font-size:1.04rem;color:#53636b}
+.callout{padding:14px 17px;border-radius:8px;margin:18px 0;border-left:4px solid var(--accent);background:var(--yellow)}
+.callout.info{background:var(--blue2);border-color:#4d91bd}
+.callout.warn{background:var(--red);border-color:#d66a4e}
+.callout.good{background:var(--green);border-color:#4e9b68}
+.callout strong{display:block;margin-bottom:3px}
+table{width:100%;border-collapse:collapse;margin:16px 0 22px;font-size:.92rem}
+th,td{padding:11px 12px;border:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:#edf3f5;color:#284c61}
+.diagram{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px;margin:18px 0;overflow-x:auto}
+.diagram svg{display:block;width:100%;height:auto;min-width:520px}
+.diagram figcaption{font-size:.82rem;color:var(--muted);margin-top:8px;text-align:center}
+.steps{counter-reset:step}
+.step{position:relative;padding-left:48px;margin:22px 0}
+.step:before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;width:32px;height:32px;background:var(--blue);color:white;border-radius:50%;display:grid;place-items:center;font-weight:800}
+.command{margin:14px 0 22px;border-radius:9px;overflow:hidden;background:var(--code);box-shadow:0 4px 14px rgba(0,0,0,.10)}
+.command-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 13px;background:#263746;color:#c8d6df;font-size:.75rem}
+.command-head span{letter-spacing:.08em;text-transform:uppercase;font-weight:700}
+.copy{border:1px solid #617787;background:#334b5d;color:#fff;border-radius:5px;padding:5px 10px;cursor:pointer;font-size:.75rem}
+.copy:hover{background:#45657c}
+pre{margin:0;padding:17px 18px;overflow:auto;color:var(--codeText);font: .88rem/1.65 Consolas,Monaco,"Courier New",monospace;tab-size:2}
+code{font-family:Consolas,Monaco,"Courier New",monospace}
+.kw{color:#8fd3ff}.str{color:#b7e3a1}.comment{color:#9aaab6;font-style:italic}.var{color:#ffd479}
+.inline-code{background:#edf0f1;border:1px solid #dce2e4;padding:1px 5px;border-radius:4px;color:#a33b28;font-size:.9em}
+.target{display:inline-block;font-size:.72rem;font-weight:800;color:#245c7a;background:#e7f1f7;padding:3px 8px;border-radius:4px;letter-spacing:.04em;margin:4px 0 8px}
+.checklist{list-style:none;padding:0}
+.checklist li{padding:7px 0 7px 28px;position:relative}
+.checklist li:before{content:"□";position:absolute;left:3px;color:var(--blue);font-size:1.15rem}
+.toc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:20px 0}
+.toc-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;text-decoration:none;color:var(--ink);transition:.15s}
+.toc-card:hover{transform:translateY(-2px);border-color:#9bb9c9;box-shadow:var(--shadow)}
+.toc-card b{display:block;color:var(--blue);margin-bottom:4px}
+.toc-card small{color:var(--muted)}
+hr{border:0;border-top:1px dashed #d8cdb7;margin:34px 0}
+.footer{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);font-size:.82rem;color:var(--muted)}
+.toplink{float:right;color:var(--blue);text-decoration:none;font-size:.8rem}
+@media(max-width:820px){.notebook{display:block;margin:0;border-radius:0}.sidebar{position:relative;height:auto;padding:18px 20px}.sidebar nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px}.nav-title{grid-column:1/-1}.main{padding:25px 20px 50px}.cover{padding:28px 22px}}
+@media print{body{background:white}.notebook{display:block;margin:0;box-shadow:none}.sidebar{display:none}.main{padding:0}.command{break-inside:avoid}.copy,.toplink{display:none}h2,h3{break-after:avoid}.diagram{break-inside:avoid}}
+
+/* ===== Real spiral-notebook aesthetic ===== */
+:root{
+  --paper:#fffef9;--ink:#303b40;--muted:#718087;--line:#d7e5eb;
+  --blue:#245b78;--blue2:#edf6fa;--yellow:#fff3a8;--red:#fff0e9;
+  --green:#edf7e9;--accent:#d9a52b;--shadow:0 18px 48px rgba(34,43,48,.20)
+}
+body{
+  background-color:#c8c2b5;
+  background-image:radial-gradient(rgba(255,255,255,.28) .8px,transparent .8px),linear-gradient(135deg,#d8d3c9,#b9b4aa);
+  background-size:5px 5px,auto;
+  font-family:Georgia,"Times New Roman",serif;
+}
+.notebook{
+  position:relative;isolation:isolate;max-width:1320px;margin:34px auto;
+  padding-left:36px;border-radius:5px 13px 13px 5px;overflow:visible;
+  background:#fffef9;box-shadow:0 22px 55px rgba(28,35,38,.25),0 2px 5px rgba(0,0,0,.08);
+}
+.notebook:before{
+  content:"";position:absolute;z-index:5;left:0;top:0;bottom:0;width:36px;
+  background:repeating-linear-gradient(to bottom,transparent 0 23px,#8b9294 24px 27px,transparent 28px 48px),
+    linear-gradient(90deg,#aeb5b7 0,#e5e7e5 25%,#b6bdbe 55%,#f2f1ec 100%);
+  border-right:1px solid #a9b0b0;border-radius:5px 0 0 5px;
+}
+.notebook:after{
+  content:"";position:absolute;z-index:6;left:10px;top:0;bottom:0;width:17px;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,transparent 0 17px,#737c80 18px 20px,transparent 21px 48px);
+  opacity:.75;
+}
+.sidebar{
+  background:#f8f4e8;border-right:1px dashed #d6c9aa;padding:30px 20px 35px 24px;
+  font-family:"Trebuchet MS",Arial,sans-serif;box-shadow:inset -5px 0 8px rgba(105,91,59,.035)
+}
+.brand{font-family:"Trebuchet MS",Arial,sans-serif;color:#285d78;letter-spacing:.1em}
+.author{background:#fff9d9;border-left:3px solid #d7a52a;border-radius:1px;box-shadow:2px 3px 7px rgba(0,0,0,.07);transform:rotate(-.5deg)}
+.nav-title{font-family:"Trebuchet MS",Arial,sans-serif;color:#a17b35;letter-spacing:.12em}
+nav a{font-family:"Trebuchet MS",Arial,sans-serif;border-radius:2px;border-bottom:1px dotted #ded4bf;padding:7px 9px}
+nav a:hover,nav a.active{background:#fff4bd;color:#245b78}
+.main{
+  position:relative;padding:46px clamp(24px,5vw,72px) 78px;
+  background-color:#fffef9;
+  background-image:linear-gradient(90deg,transparent 0,transparent 53px,rgba(214,104,94,.38) 54px,transparent 55px),
+    repeating-linear-gradient(to bottom,transparent 0,transparent 31px,rgba(125,171,194,.19) 32px,transparent 33px);
+  background-attachment:local;
+}
+.cover{
+  border:0;border-radius:2px;padding:35px 32px 32px;
+  background:rgba(255,249,218,.84);box-shadow:2px 5px 12px rgba(72,64,43,.10);
+  transform:rotate(-.25deg);border-top:5px solid #d7a52a;
+}
+.cover:after{content:"K8S";font-family:"Trebuchet MS",Arial,sans-serif;right:22px;bottom:-24px;font-size:7rem;color:rgba(36,91,120,.07);transform:rotate(-8deg)}
+.eyebrow{font-family:"Trebuchet MS",Arial,sans-serif;color:#9b742a;letter-spacing:.2em}
+h1{font-family:"Comic Sans MS","Segoe Print",cursive;color:#244f69;letter-spacing:.01em;text-shadow:1px 1px 0 #fff}
+.subtitle{font-family:Georgia,serif;color:#59666b}
+.pill{border-radius:2px;background:#fffef8;border:1px solid #e3d8b9;font-family:"Trebuchet MS",Arial,sans-serif}
+h2{
+  font-family:"Comic Sans MS","Segoe Print",cursive;color:#245b78;font-size:1.72rem;
+  border-bottom:2px solid #9bb9c7;padding-bottom:5px;margin-top:58px;position:relative;
+}
+h2:before{content:"✎";font-family:Georgia,serif;color:#d0a03a;font-size:1.05rem;margin-right:10px}
+h3{font-family:"Trebuchet MS",Arial,sans-serif;color:#315a70;font-size:1.08rem}
+p,li,td{line-height:1.78}
+.callout{border-radius:2px 8px 8px 2px;box-shadow:2px 3px 7px rgba(0,0,0,.07);transform:rotate(-.18deg)}
+.callout:before{content:"";display:block;width:48px;height:9px;background:rgba(218,190,112,.35);position:absolute;top:-5px;left:35%;transform:rotate(-2deg)}
+.callout{position:relative}
+table{background:rgba(255,255,255,.74);box-shadow:1px 3px 8px rgba(0,0,0,.04)}
+th{background:#eaf2f4;color:#31566a;font-family:"Trebuchet MS",Arial,sans-serif}
+th,td{border-color:#cbdde4}
+.diagram{background:rgba(255,255,255,.86);border:1px solid #cbdde4;border-radius:3px;box-shadow:2px 3px 8px rgba(0,0,0,.05)}
+.toc-card{border-radius:3px;background:rgba(255,255,255,.85);border:1px solid #d4e1e5;box-shadow:1px 2px 4px rgba(0,0,0,.035)}
+.toc-card:hover{background:#fff8d8}
+.command{border-radius:4px;box-shadow:0 4px 9px rgba(16,28,37,.18);border:1px solid #263746}
+.command-head{font-family:"Trebuchet MS",Arial,sans-serif;background:#293e4c}
+.copy{border-radius:3px}
+pre{font-family:"Cascadia Code",Consolas,Monaco,"Courier New",monospace}
+.target{border-radius:2px;font-family:"Trebuchet MS",Arial,sans-serif}
+.checklist li:before{content:"□";font-family:Arial,sans-serif}
+.footer{font-family:"Trebuchet MS",Arial,sans-serif;border-top:2px dashed #b8cbd2}
+@media(max-width:820px){
+  .notebook{padding-left:22px;margin:0;border-radius:0}
+  .notebook:before{width:22px}.notebook:after{left:5px;width:14px}
+  .main{background-image:linear-gradient(90deg,transparent 0,transparent 25px,rgba(214,104,94,.32) 26px,transparent 27px),repeating-linear-gradient(to bottom,transparent 0,transparent 31px,rgba(125,171,194,.16) 32px,transparent 33px)}
+}
+@media print{
+  body{background:#fff}.notebook{padding-left:0;margin:0;box-shadow:none}.notebook:before,.notebook:after{display:none}
+  .main{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,rgba(125,171,194,.12) 32px,transparent 33px)}
+  .sidebar{display:none}
+}
+
+</style>
+</head>
+<body>
+<div class="notebook" id="top">
+<aside class="sidebar">
+  <div class="brand">FIELD NOTES <small>LINUX • KUBERNETES • LAB 01</small></div>
+  <div class="author">Prepared by<br><strong>Ayush Parab</strong><br><a href="mailto:parabayush89@gmail.com">parabayush89@gmail.com</a></div>
+  <div class="nav-title">Notebook index</div>
+  <nav>
+    <a href="#overview">Overview</a>
+    <a href="#requirements">VM requirements</a>
+    <a href="#prep">1. Prepare all nodes</a>
+    <a href="#install">2. Install Kubernetes</a>
+    <a href="#master">3. Master setup</a>
+    <a href="#network">4. Pod network</a>
+    <a href="#workers">5. Join workers</a>
+    <a href="#verify">6. Verification</a>
+    <a href="#test">7. Test deployment</a>
+    <a href="#checklist">Final checklist</a>
+  </nav>
+  <div class="nav-title">Quick tip</div>
+  <p style="font-size:.82rem;color:#65747a">Use the Copy button on a command block. Run each command on the node named in its label.</p>
+</aside>
+
+<main class="main">
+<header class="cover">
+  <div class="eyebrow">Practical notebook · CentOS 9</div>
+  <h1>Kubernetes Cluster Setup</h1>
+  <p class="subtitle">A simple, step-by-step guide to building a three-node Kubernetes cluster using kubeadm and containerd.</p>
+  <div class="meta"><span class="pill">Beginner friendly</span><span class="pill">3 virtual machines</span><span class="pill">Control plane + 2 workers</span><span class="pill">Command reference</span></div>
+</header>
+
+<section id="overview">
+<h2>Notebook index & overview</h2>
+<p class="lead">In this lab, we prepare three CentOS 9 virtual machines, install the Kubernetes tools, create the control plane, connect worker nodes, and deploy a test Nginx application.</p>
+<div class="toc-grid">
+  <a class="toc-card" href="#requirements"><b>VM requirements</b><small>Plan the three machines</small></a>
+  <a class="toc-card" href="#prep"><b>01 · Preparation</b><small>Hostnames, swap, kernel and runtime</small></a>
+  <a class="toc-card" href="#install"><b>02 · Installation</b><small>kubeadm, kubelet and kubectl</small></a>
+  <a class="toc-card" href="#master"><b>03 · Control plane</b><small>Initialize the master node</small></a>
+  <a class="toc-card" href="#network"><b>04 · Pod network</b><small>Install Calico CNI</small></a>
+  <a class="toc-card" href="#workers"><b>05 · Worker nodes</b><small>Join both workers</small></a>
+  <a class="toc-card" href="#verify"><b>06 · Verification</b><small>Check cluster health</small></a>
+  <a class="toc-card" href="#test"><b>07 · Test application</b><small>Deploy and expose Nginx</small></a>
+</div>
+<figure class="diagram">
+<svg viewBox="0 0 760 260" role="img" aria-label="Kubernetes cluster with one control plane and two worker nodes">
+<defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#5686a0"/></marker></defs>
+<rect x="260" y="18" width="240" height="76" rx="10" fill="#eaf4fb" stroke="#39799e" stroke-width="2"/>
+<text x="380" y="46" text-anchor="middle" font-size="16" font-weight="bold" fill="#174f78">CONTROL PLANE</text>
+<text x="380" y="68" text-anchor="middle" font-size="12" fill="#345b70">API server · etcd · scheduler</text>
+<path d="M330 95 L190 150 M430 95 L570 150" stroke="#5686a0" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+<rect x="55" y="154" width="270" height="82" rx="10" fill="#f0f7ed" stroke="#6a9b65" stroke-width="2"/>
+<text x="190" y="184" text-anchor="middle" font-size="16" font-weight="bold" fill="#356b38">WORKER NODE 1</text>
+<text x="190" y="207" text-anchor="middle" font-size="12" fill="#4e6950">kubelet · containerd · Pods</text>
+<rect x="435" y="154" width="270" height="82" rx="10" fill="#f0f7ed" stroke="#6a9b65" stroke-width="2"/>
+<text x="570" y="184" text-anchor="middle" font-size="16" font-weight="bold" fill="#356b38">WORKER NODE 2</text>
+<text x="570" y="207" text-anchor="middle" font-size="12" fill="#4e6950">kubelet · containerd · Pods</text>
+</svg>
+<figcaption>Basic cluster layout: the control plane manages the cluster; worker nodes run application Pods.</figcaption>
+</figure>
+<div class="callout info"><strong>What are we building?</strong>A Kubernetes cluster is a group of machines that work together. The control plane manages the cluster, while worker nodes run applications inside Pods.</div>
+</section>
+
+<section id="requirements">
+<h2>VM requirements</h2>
+<p>Create these three virtual machines. All machines must be on the same network and able to communicate using hostnames and IP addresses.</p>
+<table>
+<thead><tr><th>VM name</th><th>Role</th><th>Operating system</th><th>RAM</th><th>CPU</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><b>k8s-master</b></td><td>Control plane</td><td>CentOS 9</td><td>4 GB</td><td>2 cores</td><td>API server, etcd, scheduler and controller manager</td></tr>
+<tr><td><b>k8s-worker1</b></td><td>Worker node</td><td>CentOS 9</td><td>4 GB</td><td>2 cores</td><td>Runs application workloads</td></tr>
+<tr><td><b>k8s-worker2</b></td><td>Worker node</td><td>CentOS 9</td><td>4 GB</td><td>2 cores</td><td>Runs application workloads</td></tr>
+</tbody></table>
+<div class="callout warn"><strong>Before you begin</strong>Replace every sample IP address with the real IP address of your VM. Keep a note of the master IP address and the join command generated later.</div>
+</section>
+
+<section id="prep">
+<h2>1. Prepare all nodes</h2>
+<span class="target">RUN ON: MASTER + WORKER 1 + WORKER 2</span>
+<p>Prepare the operating system on all three machines before installing Kubernetes.</p>
+
+<h3>1.1 Set hostnames</h3>
+<p>Each machine needs a unique name. Run the matching command on the matching VM.</p>
+<div class="command"><div class="command-head"><span>Master node · Bash</span><button class="copy">Copy</button></div><pre><code>sudo hostnamectl set-hostname k8s-master</code></pre></div>
+<div class="command"><div class="command-head"><span>Worker 1 · Bash</span><button class="copy">Copy</button></div><pre><code>sudo hostnamectl set-hostname k8s-worker1</code></pre></div>
+<div class="command"><div class="command-head"><span>Worker 2 · Bash</span><button class="copy">Copy</button></div><pre><code>sudo hostnamectl set-hostname k8s-worker2</code></pre></div>
+
+<h3>1.2 Configure host resolution</h3>
+<p>Edit the hosts file on <b>all nodes</b>. Add the same three lines, using your actual VM IP addresses.</p>
+<div class="command"><div class="command-head"><span>Bash · all nodes</span><button class="copy">Copy</button></div><pre><code>sudo vi /etc/hosts</code></pre></div>
+<div class="command"><div class="command-head"><span>Example entries · replace sample IPs</span><button class="copy">Copy</button></div><pre><code>192.168.x.x k8s-master
+192.168.x.x k8s-worker1
+192.168.x.x k8s-worker2</code></pre></div>
+
+<h3>1.3 Disable swap</h3>
+<div class="callout info"><strong>Why is this needed?</strong>In this training setup, kubelet expects to manage node memory. Swap can interfere with Kubernetes resource management.</div>
+<div class="command"><div class="command-head"><span>Bash · all nodes</span><button class="copy">Copy</button></div><pre><code><span class="comment"># Disable swap immediately</span>
+sudo swapoff -a
+
+<span class="comment"># Comment out the swap entry in /etc/fstab</span>
+sudo sed -i '/ swap / s/^\\(.*\\)$/#\\1/g' /etc/fstab</code></pre></div>
+
+<h3>1.4 Set SELinux to permissive</h3>
+<div class="callout info"><strong>Simple explanation</strong>Permissive mode logs SELinux policy violations instead of enforcing them. This is the setting used by the supplied lab procedure.</div>
+<div class="command"><div class="command-head"><span>Bash · all nodes</span><button class="copy">Copy</button></div><pre><code><span class="comment"># Change mode now</span>
+sudo setenforce 0
+
+<span class="comment"># Make the setting persistent</span>
+sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config</code></pre></div>
+
+<h3>1.5 Firewall setting for this lab</h3>
+<div class="callout warn"><strong>Lab-only security note</strong>The original procedure disables firewalld to avoid port-related lab issues. This reduces host protection. Do not use this shortcut on an internet-facing or production machine; production systems should have only the required Kubernetes ports allowed.</div>
+<div class="command"><div class="command-head"><span>Bash · all nodes</span><button class="copy">Copy</button></div><pre><code>sudo systemctl disable --now firewalld</code></pre></div>
+
+<h3>1.6 Load kernel modules</h3>
+<p><span class="inline-code">overlay</span> supports the container filesystem. <span class="inline-code">br_netfilter</span> helps bridged network traffic pass through the packet-filtering rules.</p>
+<div class="command"><div class="command-head"><span>Bash · all nodes</span><button class="copy">Copy</button></div><pre><code>cat &lt;&lt;EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+
+sudo modprobe overlay
+sudo modprobe br_netfilter</code></pre></div>
+
+<h3>1.7 Configure kernel networking</h3>
+<p>These settings enable IPv4 forwarding and allow bridged traffic to be processed by iptables.</p>
+<div class="command"><div class="command-head"><span>Bash · all nodes</span><button class="copy">Copy</button></div><pre><code>cat &lt;&lt;EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+<span class="comment"># Apply settings now</span>
+sudo sysctl --system</code></pre></div>
+
+<h3>1.8 Install and configure containerd</h3>
+<p><b>containerd</b> is the container runtime. It downloads and runs containers for Kubernetes. The systemd cgroup setting keeps the runtime and Kubernetes using the same resource-management driver.</p>
+<div class="command"><div class="command-head"><span>Bash · all nodes</span><button class="copy">Copy</button></div><pre><code><span class="comment"># Add the Docker repository</span>
+sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+<span class="comment"># Install containerd</span>
+sudo dnf install -y containerd.io
+
+<span class="comment"># Create the default configuration</span>
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml &gt;/dev/null
+
+<span class="comment"># Use the systemd cgroup driver</span>
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+
+<span class="comment"># Enable and start containerd</span>
+sudo systemctl enable --now containerd</code></pre></div>
+<div class="callout good"><strong>Checkpoint</strong>At this point, all three machines should have unique hostnames, node-to-node host entries, the required kernel settings, and containerd installed and running.</div>
+</section>
+
+<section id="install">
+<h2>2. Install Kubernetes components</h2>
+<span class="target">RUN ON: ALL THREE NODES</span>
+<p>Install these three Kubernetes command-line components:</p>
+<table><thead><tr><th>Component</th><th>Simple meaning</th></tr></thead><tbody>
+<tr><td><b>kubeadm</b></td><td>Creates and joins the Kubernetes cluster.</td></tr>
+<tr><td><b>kubelet</b></td><td>Runs on each node and manages Pods.</td></tr>
+<tr><td><b>kubectl</b></td><td>Lets an administrator communicate with the cluster.</td></tr>
+</tbody></table>
+<h3>2.1 Add the Kubernetes repository</h3>
+<div class="command"><div class="command-head"><span>Bash · all nodes</span><button class="copy">Copy</button></div><pre><code>cat &lt;&lt;EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.30/rpm/
+enabled=1
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/v1.30/rpm/repodata/repomd.xml.key
+EOF</code></pre></div>
+<h3>2.2 Install the packages</h3>
+<div class="command"><div class="command-head"><span>Bash · all nodes</span><button class="copy">Copy</button></div><pre><code>sudo dnf install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+
+<span class="comment"># Enable kubelet; kubeadm will start it during setup</span>
+sudo systemctl enable kubelet</code></pre></div>
+<div class="callout warn"><strong>Version note</strong>The supplied transcript uses the Kubernetes v1.30 package repository and Calico v3.27.3 manifest. These are the versions recorded in this notebook; check compatibility and current support before using this as a fresh production installation guide.</div>
+</section>
+
+<section id="master">
+<h2>3. Master node setup</h2>
+<span class="target">RUN ON: MASTER ONLY</span>
+<p>Now create the Kubernetes control plane. It includes the API server, etcd database, scheduler and controller manager.</p>
+<h3>3.1 Initialize the cluster</h3>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>sudo kubeadm init --pod-network-cidr=192.168.0.0/16</code></pre></div>
+<div class="callout info"><strong>What does the option mean?</strong><span class="inline-code">--pod-network-cidr</span> defines the IP address range used by Pods. This transcript uses <span class="inline-code">192.168.0.0/16</span> for the Calico setup that follows.</div>
+<p>At the end, kubeadm prints a <b>kubeadm join</b> command. Copy the complete command and save it. You will run it on both worker nodes in Step 5.</p>
+<h3>3.2 Configure kubectl for your user</h3>
+<p>The kubeconfig file tells kubectl which API server to contact and how to authenticate.</p>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config</code></pre></div>
+<h3>3.3 Check the control plane node</h3>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>kubectl get nodes</code></pre></div>
+<div class="callout info"><strong>Expected at this stage</strong>The master node may show <span class="inline-code">NotReady</span>. This is expected before a Pod network plugin is installed.</div>
+</section>
+
+<section id="network">
+<h2>4. Install the Pod network (CNI)</h2>
+<span class="target">RUN ON: MASTER ONLY</span>
+<p>Kubernetes needs a Container Network Interface (CNI) plugin to provide Pod networking. This lab uses Calico.</p>
+<figure class="diagram">
+<svg viewBox="0 0 760 190" role="img" aria-label="Calico network connects Pods across worker nodes">
+<rect x="20" y="35" width="205" height="115" rx="9" fill="#edf5fb" stroke="#5790b4" stroke-width="2"/>
+<text x="122" y="61" text-anchor="middle" font-size="15" font-weight="bold" fill="#174f78">Worker 1</text>
+<rect x="48" y="78" width="65" height="43" rx="6" fill="#fff" stroke="#5790b4"/><text x="80" y="104" text-anchor="middle" font-size="12" fill="#345">Pod A</text>
+<rect x="132" y="78" width="65" height="43" rx="6" fill="#fff" stroke="#5790b4"/><text x="164" y="104" text-anchor="middle" font-size="12" fill="#345">Pod B</text>
+<rect x="535" y="35" width="205" height="115" rx="9" fill="#edf7ed" stroke="#6a9b65" stroke-width="2"/>
+<text x="637" y="61" text-anchor="middle" font-size="15" font-weight="bold" fill="#356b38">Worker 2</text>
+<rect x="563" y="78" width="65" height="43" rx="6" fill="#fff" stroke="#6a9b65"/><text x="595" y="104" text-anchor="middle" font-size="12" fill="#345">Pod C</text>
+<rect x="647" y="78" width="65" height="43" rx="6" fill="#fff" stroke="#6a9b65"/><text x="679" y="104" text-anchor="middle" font-size="12" fill="#345">Pod D</text>
+<path d="M225 94 H535" stroke="#d19a26" stroke-width="4" stroke-dasharray="8 6"/>
+<text x="380" y="80" text-anchor="middle" font-size="14" font-weight="bold" fill="#936514">Calico CNI</text>
+<text x="380" y="122" text-anchor="middle" font-size="12" fill="#65747a">Pod-to-Pod network</text>
+</svg>
+<figcaption>Conceptual view: the CNI plugin provides networking between Pods on different nodes.</figcaption>
+</figure>
+<h3>4.1 Deploy Calico</h3>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.3/manifests/calico.yaml</code></pre></div>
+<h3>4.2 Verify the network</h3>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>kubectl get pods -n kube-system
+kubectl get nodes</code></pre></div>
+<p>Calico Pods should start. Wait a few minutes and check again. The master should become <b>Ready</b> when the network setup is healthy.</p>
+</section>
+
+<section id="workers">
+<h2>5. Worker node setup</h2>
+<span class="target">RUN ON: WORKER 1 + WORKER 2</span>
+<p>Join each worker to the control plane using the command printed by <span class="inline-code">kubeadm init</span> in Step 3.1.</p>
+<h3>5.1 Join the cluster</h3>
+<div class="command"><div class="command-head"><span>Bash · run separately on both workers</span><button class="copy">Copy</button></div><pre><code>sudo kubeadm join &lt;master-ip&gt;:6443 --token &lt;token&gt; \\
+  --discovery-token-ca-cert-hash sha256:&lt;hash&gt;</code></pre></div>
+<div class="callout warn"><strong>Important: use your real join command</strong>The placeholders <span class="inline-code">&lt;master-ip&gt;</span>, <span class="inline-code">&lt;token&gt;</span> and <span class="inline-code">&lt;hash&gt;</span> are examples, not literal values. Paste the full command generated by your master node.</div>
+<ul>
+<li><b>Token:</b> proves that the joining node is authorized to join.</li>
+<li><b>Discovery hash:</b> helps the worker verify the cluster certificate authority.</li>
+</ul>
+<p>The transcript notes that join tokens expire after 24 hours. If needed, generate a fresh join command on the master:</p>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>kubeadm token create --print-join-command</code></pre></div>
+</section>
+
+<section id="verify">
+<h2>6. Verify the complete cluster</h2>
+<span class="target">RUN ON: MASTER ONLY</span>
+<p>After both workers have joined, check the node list and system Pods.</p>
+<h3>6.1 Check nodes</h3>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>kubectl get nodes</code></pre></div>
+<p><b>Expected result:</b> the master and both worker nodes appear in the list with status <span class="inline-code">Ready</span>.</p>
+<h3>6.2 Check system Pods</h3>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>kubectl get pods -n kube-system -o wide</code></pre></div>
+<p>Look for the core Kubernetes components, CoreDNS and Calico Pods. They should reach the <span class="inline-code">Running</span> state.</p>
+<figure class="diagram">
+<svg viewBox="0 0 760 145" role="img" aria-label="Expected healthy cluster state">
+<rect x="25" y="25" width="220" height="92" rx="9" fill="#e9f6ed" stroke="#5a9c6c" stroke-width="2"/>
+<text x="135" y="57" text-anchor="middle" font-size="15" font-weight="bold" fill="#356b38">k8s-master</text><text x="135" y="85" text-anchor="middle" font-size="14" fill="#356b38">● Ready</text>
+<rect x="270" y="25" width="220" height="92" rx="9" fill="#e9f6ed" stroke="#5a9c6c" stroke-width="2"/>
+<text x="380" y="57" text-anchor="middle" font-size="15" font-weight="bold" fill="#356b38">k8s-worker1</text><text x="380" y="85" text-anchor="middle" font-size="14" fill="#356b38">● Ready</text>
+<rect x="515" y="25" width="220" height="92" rx="9" fill="#e9f6ed" stroke="#5a9c6c" stroke-width="2"/>
+<text x="625" y="57" text-anchor="middle" font-size="15" font-weight="bold" fill="#356b38">k8s-worker2</text><text x="625" y="85" text-anchor="middle" font-size="14" fill="#356b38">● Ready</text>
+</svg>
+<figcaption>Target state after the cluster has been configured successfully.</figcaption>
+</figure>
+</section>
+
+<section id="test">
+<h2>7. Test deployment</h2>
+<span class="target">RUN ON: MASTER ONLY</span>
+<p>Deploy a simple Nginx web server to confirm that Kubernetes can run an application.</p>
+<h3>7.1 Create an Nginx deployment</h3>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>kubectl create deployment nginx-test --image=nginx:latest</code></pre></div>
+<p>This command asks Kubernetes to create a Deployment that runs an Nginx container in a Pod.</p>
+<h3>7.2 Expose the deployment</h3>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>kubectl expose deployment nginx-test --port=80 --type=NodePort</code></pre></div>
+<p>A NodePort Service makes the application reachable through a port on each node. Kubernetes normally selects a port in the <span class="inline-code">30000–32767</span> range.</p>
+<h3>7.3 Find the NodePort</h3>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>kubectl get svc nginx-test</code></pre></div>
+<p>In the <b>PORT(S)</b> column, you may see a value similar to <span class="inline-code">80:31456/TCP</span>. In this example, <b>31456</b> is the NodePort. Your assigned port may be different.</p>
+<h3>7.4 Test from a worker</h3>
+<div class="command"><div class="command-head"><span>Bash · from a machine that can reach the worker</span><button class="copy">Copy</button></div><pre><code>curl http://&lt;worker1-ip&gt;:31456</code></pre></div>
+<div class="callout good"><strong>Success looks like this</strong>If Nginx is working and the network path is available, curl should return the Nginx welcome page HTML.</div>
+</section>
+
+<section id="checklist">
+<h2>Final lab checklist</h2>
+<p>Tick these items as you complete the practical.</p>
+<ul class="checklist">
+<li>Three CentOS 9 VMs created with the required resources.</li>
+<li>All three nodes can communicate using their hostnames.</li>
+<li>Swap disabled and required kernel settings applied.</li>
+<li>containerd installed and started on all nodes.</li>
+<li>kubeadm, kubelet and kubectl installed on all nodes.</li>
+<li>Control plane initialized successfully.</li>
+<li>Calico network Pods are running.</li>
+<li>Both worker nodes joined the cluster.</li>
+<li>All three nodes show Ready.</li>
+<li>Nginx Deployment and NodePort Service created.</li>
+<li>Nginx responds to the curl test.</li>
+</ul>
+<div class="callout info"><strong>Notebook reminder</strong>Keep a record of your VM IP addresses, the exact Kubernetes version installed, and the generated join command. Do not share the join token or admin kubeconfig publicly.</div>
+</section>
+
+<div class="footer">
+  <a class="toplink" href="#top">Back to top ↑</a>
+  <b>Kubernetes Cluster Setup · CentOS 9</b><br>
+  Prepared by Ayush Parab · <a href="mailto:parabayush89@gmail.com">parabayush89@gmail.com</a><br>
+  <span>Training notebook based on the supplied transcript. Lab configuration and version choices follow that source.</span>
+</div>
+</main>
+</div>
+<script>
+document.querySelectorAll('.copy').forEach(button=>{
+  button.addEventListener('click',async()=>{
+    const code=button.closest('.command').querySelector('pre code').innerText;
+    try{
+      await navigator.clipboard.writeText(code);
+      button.textContent='Copied!';
+      setTimeout(()=>button.textContent='Copy',1400);
+    }catch(e){
+      button.textContent='Select code';
+    }
+  });
+});
+const links=[...document.querySelectorAll('nav a')];
+const sections=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+entry.target.id));
+    }
+  });
+},{rootMargin:'-15% 0px -75% 0px'});
+sections.forEach(section=>observer.observe(section));
+</script>
+</body>
+</html>
