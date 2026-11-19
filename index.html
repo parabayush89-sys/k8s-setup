@@ -59,7 +59,7 @@ code{font-family:Consolas,Monaco,"Courier New",monospace}
 .kw{color:#8fd3ff}.str{color:#b7e3a1}.comment{color:#9aaab6;font-style:italic}.var{color:#ffd479}
 .inline-code{background:#edf0f1;border:1px solid #dce2e4;padding:1px 5px;border-radius:4px;color:#a33b28;font-size:.9em}
 .target{display:inline-block;font-size:.72rem;font-weight:800;color:#245c7a;background:#e7f1f7;padding:3px 8px;border-radius:4px;letter-spacing:.04em;margin:4px 0 8px}
-.checklist{list-style:none;padding:0}
+.steps-list{padding-left:25px;margin:10px 0 18px}.steps-list li{padding:4px 0 4px 5px}.checklist{list-style:none;padding:0}
 .checklist li{padding:7px 0 7px 28px;position:relative}
 .checklist li:before{content:"□";position:absolute;left:3px;color:var(--blue);font-size:1.15rem}
 .toc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:20px 0}
@@ -179,6 +179,7 @@ pre{font-family:"Cascadia Code",Consolas,Monaco,"Courier New",monospace}
     <a href="#workers">5. Join workers</a>
     <a href="#verify">6. Verification</a>
     <a href="#test">7. Test deployment</a>
+    <a href="#restart">8. Stop &amp; restart</a>
     <a href="#checklist">Final checklist</a>
   </nav>
   <div class="nav-title">Quick tip</div>
@@ -444,6 +445,79 @@ kubectl get nodes</code></pre></div>
 <h3>7.4 Test from a worker</h3>
 <div class="command"><div class="command-head"><span>Bash · from a machine that can reach the worker</span><button class="copy">Copy</button></div><pre><code>curl http://&lt;worker1-ip&gt;:31456</code></pre></div>
 <div class="callout good"><strong>Success looks like this</strong>If Nginx is working and the network path is available, curl should return the Nginx welcome page HTML.</div>
+</section>
+
+
+<section id="restart">
+<h2>8. Stop and restart the Kubernetes cluster</h2>
+<span class="target">VMWARE LAB · SAVE YOUR CLUSTER FOR LATER</span>
+<p class="lead">Use this procedure when you want to shut down your VMware lab VMs and continue your Kubernetes practice later without rebuilding the cluster.</p>
+
+<h3>8.1 Before stopping the cluster</h3>
+<span class="target">RUN ON: MASTER NODE</span>
+<p>Check the current state of the cluster before shutting down the virtual machines.</p>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>kubectl get nodes
+kubectl get pods -A</code></pre></div>
+<p>For planned maintenance of an individual worker, you can first move workloads away from it:</p>
+<div class="command"><div class="command-head"><span>Bash · master node · optional maintenance step</span><button class="copy">Copy</button></div><pre><code>kubectl drain k8s-worker1 --ignore-daemonsets --delete-emptydir-data</code></pre></div>
+<div class="callout info"><strong>When is drain needed?</strong>Repeat with the correct worker name if required. Draining is optional when you are simply shutting down the entire lab. It is useful when maintaining one node while the rest of the cluster stays online.</div>
+
+<h3>8.2 Shut down the nodes</h3>
+<p>For a complete lab shutdown, shut down the <b>worker nodes first</b>, then the <b>master node</b>.</p>
+<span class="target">RUN ON: EACH WORKER NODE</span>
+<div class="command"><div class="command-head"><span>Bash · worker 1 and worker 2</span><button class="copy">Copy</button></div><pre><code>sudo systemctl stop kubelet
+sudo shutdown -h now</code></pre></div>
+<p>After both workers have shut down, run these commands on the master:</p>
+<span class="target">RUN ON: MASTER NODE · AFTER WORKERS ARE OFF</span>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>sudo systemctl stop kubelet
+sudo shutdown -h now</code></pre></div>
+<p>You can also shut down the VMs through VMware after the guest operating systems have shut down.</p>
+<div class="callout warn"><strong>Important — preserve your cluster</strong>
+<ul>
+<li>Do not run <code>kubeadm reset</code> just to stop the cluster. It removes local Kubernetes configuration and is intended for dismantling or rebuilding a node.</li>
+<li>Do not delete <code>/etc/kubernetes</code>, <code>/var/lib/etcd</code>, or the CNI configuration when you want to preserve the cluster.</li>
+<li>Keep the VM disks and network configuration unchanged so the nodes retain their identities and IP addresses.</li>
+</ul></div>
+
+<h3>8.3 Start the cluster again</h3>
+<p>Start the VMs in this order:</p>
+<ol class="steps-list">
+<li>Start the <b>master VM</b> first.</li>
+<li>Wait for the master operating system to boot and its network to become available.</li>
+<li>Start <b>worker1</b> and <b>worker2</b>.</li>
+</ol>
+<figure class="diagram">
+<svg viewBox="0 0 760 125" role="img" aria-label="Recommended VM startup order: master first, then both workers">
+<defs><marker id="restartArr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#5686a0"/></marker></defs>
+<rect x="18" y="25" width="190" height="76" rx="9" fill="#eaf4fb" stroke="#39799e" stroke-width="2"/><text x="113" y="55" text-anchor="middle" font-size="15" font-weight="bold" fill="#174f78">1. MASTER</text><text x="113" y="78" text-anchor="middle" font-size="12" fill="#345b70">Boot first</text>
+<path d="M212 63 H276" stroke="#5686a0" stroke-width="2.5" marker-end="url(#restartArr)"/>
+<rect x="286" y="25" width="190" height="76" rx="9" fill="#f0f7ed" stroke="#6a9b65" stroke-width="2"/><text x="381" y="55" text-anchor="middle" font-size="15" font-weight="bold" fill="#356b38">2. WORKER 1</text><text x="381" y="78" text-anchor="middle" font-size="12" fill="#4e6950">Start after master</text>
+<path d="M480 63 H544" stroke="#5686a0" stroke-width="2.5" marker-end="url(#restartArr)"/>
+<rect x="554" y="25" width="190" height="76" rx="9" fill="#f0f7ed" stroke="#6a9b65" stroke-width="2"/><text x="649" y="55" text-anchor="middle" font-size="15" font-weight="bold" fill="#356b38">3. WORKER 2</text><text x="649" y="78" text-anchor="middle" font-size="12" fill="#4e6950">Start after master</text>
+</svg><figcaption>Startup order for this lab: control plane first, then the worker VMs.</figcaption>
+</figure>
+<p>On the <b>master and both worker nodes</b>, make sure containerd and kubelet are running:</p>
+<div class="command"><div class="command-head"><span>Bash · all three nodes</span><button class="copy">Copy</button></div><pre><code>sudo systemctl start containerd
+sudo systemctl start kubelet</code></pre></div>
+<p>To make sure these services start automatically after future OS boots, check that they are enabled:</p>
+<div class="command"><div class="command-head"><span>Bash · all three nodes</span><button class="copy">Copy</button></div><pre><code>sudo systemctl enable containerd
+sudo systemctl enable kubelet</code></pre></div>
+<p>On the master, check the cluster:</p>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>kubectl get nodes
+kubectl get pods -A</code></pre></div>
+<p>Give the services and Calico networking a little time to recover. Nodes may briefly show <code>NotReady</code> while components start. Check again:</p>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>kubectl get nodes
+kubectl get pods -n kube-system -o wide</code></pre></div>
+<div class="callout good"><strong>Expected result</strong>The master and workers should return to <code>Ready</code>, and system Pods should become <code>Running</code> or reach their expected status.</div>
+
+<h3>8.4 When should you run kubeadm init again?</h3>
+<div class="callout warn"><strong>Normally, you do not run kubeadm init again when restarting a stopped cluster.</strong>Run <code>kubeadm init</code> on the master only when creating a new control plane — for example, during the first cluster setup, after intentionally resetting/dismantling the master, or when creating a fresh master VM. Do not run it just because you shut down or rebooted the master. The existing control-plane configuration and etcd data should be reused.</div>
+
+<h3>8.5 When should you run kubeadm join again?</h3>
+<div class="callout info"><strong>Normally, you do not run kubeadm join every time a worker VM starts.</strong>Run <code>kubeadm join</code> on a worker only when adding it for the first time, after running <code>kubeadm reset</code> on that worker, or after rebuilding/removing and re-adding the worker VM. A normal reboot or shutdown/start cycle does not require a new join command.</div>
+<p>If you need a new join command, generate one on the master:</p>
+<div class="command"><div class="command-head"><span>Bash · master node</span><button class="copy">Copy</button></div><pre><code>sudo kubeadm token create --print-join-command</code></pre></div>
+<p>Then run the generated command on the worker that needs to join.</p>
 </section>
 
 <section id="checklist">
